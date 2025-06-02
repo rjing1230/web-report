@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MindAR 影片播放互動</title>
+  <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+
+    /* 播放按鈕（縮小版）黑底 + 白框 + 白色箭頭 */
+    #playButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      background-color: black;
+      border: 2.5px solid white;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+
+    #playButton::before {
+      content: "";
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 12px 0 12px 20px;
+      border-color: transparent transparent transparent white;
+      margin-left: 3px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 播放按鈕 -->
+  <button id="playButton"></button>
+
+  <!-- A-Frame + MindAR 場景 -->
+  <a-scene
+    mindar-image="imageTargetSrc: milktea04.mind; autoStart: true; uiScanning: true;"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
+    <a-assets>
+      <video id="introVid" src="video-04.mp4" preload="auto" muted playsinline></video>
+    </a-assets>
+
+    <a-light type="ambient" intensity="1.5"></a-light>
+    <a-camera look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-video
+        id="videoEntity"
+        src="#introVid"
+        width="0.7" height="1.2"
+        autoplay="false"
+        loop="false"
+        material="shader: flat"
+        position="0 0 0">
+      </a-video>
+    </a-entity>
+  </a-scene>
+
+  <!-- 控制邏輯 -->
+  <script>
+    const video = document.querySelector('#introVid');
+    const videoPlane = document.querySelector('#videoEntity');
+    const targetEntity = document.querySelector('a-entity[mindar-image-target]');
+    const playButton = document.getElementById('playButton');
+
+    // 預設暫停影片並隱藏按鈕
+    video.pause();
+    video.currentTime = 0;
+    playButton.style.display = 'none';
+
+    // 點擊播放按鈕
+    playButton.addEventListener('click', async () => {
+      playButton.style.display = 'none';
+      video.muted = false;
+      try {
+        await video.play();
+      } catch (err) {
+        console.error('播放失敗：', err);
+      }
+    });
+
+    // 掃到圖卡 → 如果影片沒在播，顯示播放按鈕
+    targetEntity.addEventListener('targetFound', () => {
+      if (video.paused) {
+        playButton.style.display = 'flex';
+      }
+    });
+
+    // 圖卡遺失 → 暫停影片 + 隱藏按鈕
+    targetEntity.addEventListener('targetLost', () => {
+      video.pause();
+      video.currentTime = 0;
+      playButton.style.display = 'none';
+    });
+
+    // 播放完畢 → 顯示播放按鈕
+    video.addEventListener('ended', () => {
+      video.currentTime = 0;
+      playButton.style.display = 'flex';
+    });
+
+    // 可選：點擊影片播放面板本身可切換播放／暫停
+    videoPlane.addEventListener('click', () => {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    });
+  </script>
+</body>
+</html>
